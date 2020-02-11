@@ -5,3 +5,4 @@ I will use this repository to keep an index of some kernel modules I have made a
 * [Kernel Number Generator](https://github.com/Zildj1an/Kernel-Numbers-Generator)
   Notes: Uses kernel interruptions, semaphores and kernel workqueues.
 * [Send signal to process via PID](https://github.com/Zildj1an/Useful-kernel-modules/blob/master/send_signals.c)
+* [Playing with Linked Lists](https://github.com/Zildj1an/Linux-Linked-Lists) - Has seq_files 
