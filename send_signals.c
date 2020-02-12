@@ -67,15 +67,14 @@ static ssize_t myproc_write(struct file *filp, const char __user *buf, size_t le
         else if (sscanf(kbuf, "resume %d", &pid) == 1)  signal_n = SIGCONT;
         else return -EINVAL;
 
-        if (pid < 0 || !current->pmc)
-                return -EINVAL;
+        if (pid < 0) return -EINVAL;
 
         rcu_read_lock();
 
         /* To retrieve the task having the PID */
         target = pid_task(find_pid_ns(pid,task_active_pid_ns(current)), PIDTYPE_PID);
 
-        if(!target || !target->pmc) {
+        if(!target) {
                 rcu_read_unlock();
                 return -ESRCH;
         }
