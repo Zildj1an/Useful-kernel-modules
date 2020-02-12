@@ -4,11 +4,14 @@
 #include <linux/uaccess.h> /* copy_from_user */
 #include <linux/vmalloc.h>
 #include <linux/sched.h>
+#include <linux/pid.h>
+#include <linux/pid_namespace.h>
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Carlos Bilbao");
 MODULE_DESCRIPTION("Linux kernel module for testing signal sending");
 
-#define MODULE_NAME 	"signal_checker"
+#define MODULE_NAME     "signal_checker"
+#define MAX_SIZE        30
 
 /* My /proc file entry */
 static struct proc_dir_entry *my_proc_entry;
@@ -35,7 +38,7 @@ void send_signal(int sig_num, struct task_struct* p){
         break;
     case SIGCONT:
         printk(KERN_INFO "wake_up_process to thread %d in state %ld\n",p->pid,p->state);
-        wake_up_process(p); 
+        wake_up_process(p);
         break;
     default:
         ret = send_sig_info(sig_num, &info,  p);
@@ -51,37 +54,40 @@ void send_signal(int sig_num, struct task_struct* p){
 /* Invoked with echo */
 static ssize_t myproc_write(struct file *filp, const char __user *buf, size_t len, loff_t *off) {
 
-	char kbuf[MAX_SIZE],elem[MAX_SIZE];
-	int pid, ret;
-	struct task_struct *target;
-	unsigned long signal_n;
+        char kbuf[MAX_SIZE];
+        int pid;
+        struct task_struct *target;
+        unsigned long signal_n;
 
-	if (len >= MAX_SIZE) return -EFBIG;
-	if (copy_from_user(kbuf, buf, len) > 0) return -EINVAL;
-	if ((*off > 0)) return 0;
+        if (len >= MAX_SIZE) return -EFBIG;
+        if (copy_from_user(kbuf, buf, len) > 0) return -EINVAL;
+        if ((*off > 0)) return 0;
 
-	if (sscanf(kbuf, "sleep %d", &pid) == 1)        signal_n = SIGSTOP;
-	else if (sscanf(kbuf, "resume %d", &pid) == 1)  signal_n = SIGCONT;
-	else return -EINVAL;
+        if (sscanf(kbuf, "sleep %d", &pid) == 1)        signal_n = SIGSTOP;
+        else if (sscanf(kbuf, "resume %d", &pid) == 1)  signal_n = SIGCONT;
+        else return -EINVAL;
 
-	if (pid < 0 || !cur->pmc)
-		return -EINVAL;
+        if (pid < 0 || !current->pmc)
+                return -EINVAL;
 
-	rcu_read_lock();
-	target = find_process_by_pid(pid);
-	if(!target || !target->pmc) {
-		rcu_read_unlock();
-		return -ESRCH;
-	}
-	/* Prevent target from going away */
-	get_task_struct(target);
-	rcu_read_unlock();
+        rcu_read_lock();
 
-	send_signal(target,signal_n);
+        /* To retrieve the task having the PID */
+        target = pid_task(find_pid_ns(pid,task_active_pid_ns(current)), PIDTYPE_PID);
 
-	put_task_struct(target);
+        if(!target || !target->pmc) {
+                rcu_read_unlock();
+                return -ESRCH;
+        }
+        /* Prevent target from going away */
+        get_task_struct(target);
+        rcu_read_unlock();
 
-	(*off) += len;
+        send_signal(signal_n,target);
+
+        put_task_struct(target);
+
+        (*off) += len;
 
  return len;
 }
@@ -89,29 +95,29 @@ static ssize_t myproc_write(struct file *filp, const char __user *buf, size_t le
 /* Operations that the module can handle */
 const struct file_operations fops = {
 
-	.write = myproc_write,
+        .write = myproc_write,
 };
 
 int module_linit(void){
 
-	int ret = 0;
+        int ret = 0;
 
-	my_proc_entry = proc_create(MODULE_NAME, 0666, NULL, &fops); //Create proc entry
+        my_proc_entry = proc_create(MODULE_NAME, 0666, NULL, &fops); //Create proc entry
 
-	if(my_proc_entry == NULL) {
-		ret = -ENOMEM;
-		printk(KERN_INFO "Couldn't create the /proc entry. \n");
-	}
+        if(my_proc_entry == NULL) {
+                ret = -ENOMEM;
+                printk(KERN_INFO "Couldn't create the /proc entry. \n");
+        }
 
-	printk(KERN_INFO "Module %s succesfully charged for integers. \n", MODULE_NAME);
+        printk(KERN_INFO "Module %s succesfully charged for integers. \n", MODULE_NAME);
 
-	return ret;
+        return ret;
 }
 
 void module_lclean(void) {
 
-	remove_proc_entry(MODULE_NAME, NULL);
-	printk(KERN_INFO "Module %s disconnected \n", MODULE_NAME);
+        remove_proc_entry(MODULE_NAME, NULL);
+        printk(KERN_INFO "Module %s disconnected \n", MODULE_NAME);
 }
 
 module_init(module_linit);
