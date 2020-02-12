@@ -11,7 +11,7 @@ MODULE_AUTHOR("Carlos Bilbao");
 MODULE_DESCRIPTION("Linux kernel module for testing signal sending");
 
 #define MODULE_NAME     "signal_checker"
-#define MAX_SIZE        30
+#define MAX_SIZE        40
 
 /* My /proc file entry */
 static struct proc_dir_entry *my_proc_entry;
