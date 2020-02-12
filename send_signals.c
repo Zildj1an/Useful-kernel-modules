@@ -28,20 +28,20 @@ void send_signal(int sig_num, struct task_struct* p){
    info.si_code = 0;
    info.si_int = 1234;
 
+   ret = send_sig_info(sig_num, &info,  p);
+   
    /* Make sure the signal has been captured */
    switch(sig_num){
     case SIGSTOP:
-        ret = send_sig_info(sig_num, &info,  p);
         /* Atomic operations shouldn't have lock acquired */
         printk(KERN_INFO "wait_task_inactive to thread %d in state %ld\n",p->pid,p->state);
         wait_task_inactive(p, p->state);
         break;
     case SIGCONT:
-        printk(KERN_INFO "wake_up_process to thread %d in state %ld\n",p->pid,p->state);
-        wake_up_process(p);
+        //printk(KERN_INFO "wake_up_process to thread %d in state %ld\n",p->pid,p->state);
+        //wake_up_process(p); Not really needed.
         break;
     default:
-        ret = send_sig_info(sig_num, &info,  p);
         printk(KERN_INFO "Signal %d was only sent...\n",sig_num);
    }
 
