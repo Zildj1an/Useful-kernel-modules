@@ -109,7 +109,7 @@ int module_linit(void){
                 printk(KERN_INFO "Couldn't create the /proc entry. \n");
         }
 
-        printk(KERN_INFO "Module %s succesfully charged for integers. \n", MODULE_NAME);
+        printk(KERN_INFO "Module %s succesfully charged. \n", MODULE_NAME);
 
         return ret;
 }
